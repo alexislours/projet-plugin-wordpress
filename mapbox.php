@@ -23,17 +23,6 @@ function mapbox_iw_install()
   require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
   global $wpdb;
   $charset_collate = $wpdb->get_charset_collate();
-
-  // Store Mapbox settings
-  $settings_table_name = $wpdb->prefix . "mapbox_iw_settings";
-  $sqlSettings = "CREATE TABLE $settings_table_name (
-        id mediumint(9) NOT NULL AUTO_INCREMENT,
-        time DATETIME DEFAULT '0000-00-00 00:00:00' NOT NULL,
-        token VARCHAR(100) DEFAULT '' NOT NULL,
-        PRIMARY KEY  (id)
-      ) $charset_collate;";
-  dbDelta($sqlSettings);
-
   $data_table_name = $wpdb->prefix . "mapbox_iw_data";
   $sqlData = "CREATE TABLE $data_table_name (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
