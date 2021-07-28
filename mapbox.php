@@ -38,6 +38,16 @@ function mapbox_iw_install()
 }
 
 /* -------------------------------------------------------------------------- */
+/*                                Load scripts                                */
+/* -------------------------------------------------------------------------- */
+
+function add_plugin_scripts() {
+  wp_enqueue_style( 'style', plugins_url('css/mapbox-gl.css', __FILE__), array(), '2.3.1', 'all');
+  wp_enqueue_script( 'script', plugins_url('js/mapbox-gl.js', __FILE__), array (), '2.3.1', false);
+}
+add_action( 'wp_enqueue_scripts', 'add_plugin_scripts' );
+
+/* -------------------------------------------------------------------------- */
 /*                                Settings page                               */
 /* -------------------------------------------------------------------------- */
 
@@ -73,4 +83,55 @@ function mapbox_iw_options_page()
     </form>
   </div>
 <?php
-} ?>
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Custom shortcode                              */
+/* -------------------------------------------------------------------------- */
+
+function mapbox_iw_shortcode($atts)
+{
+  extract(shortcode_atts(
+    array(
+      'id' => 'map',
+      'style' => 'satellite-v9',
+      'zoom' => '15',
+      'lon' => '2.38961',
+      'lat' => '48.84907',
+      'token' => get_option('mapbox_iw_token'),
+      'interactive' => 'true',
+      'width' => '100%',
+      'height' => '400px',
+      'marker' => false,
+      'color' => '#f00',
+      'mklon' => false,
+      'mklat' => false,
+    ),
+    $atts
+  ));
+  $res = "<div id='" . $id . "' style='width: " . $width . "; height: ". $height .";'></div>\n"
+    . "<script>\n"
+    . "mapboxgl.accessToken = '" . $token . "';\n"
+    . "var map = new mapboxgl.Map({\n"
+    . "container: 'map',\n"
+    . "style: 'mapbox://styles/mapbox/". $style ."',\n"
+    . "center: ['". $lon . "','" . $lat . "'],\n"
+    . "zoom: '". $zoom . "',\n"
+    . "interactive: ". $interactive
+    . "\n})\n";
+  if ($marker == 'true') {
+    $res .= "var marker = new mapboxgl.Marker({\n"
+      . "color: '" . $color . "',\n"
+      . "})\n";
+      if ($mklon && $mklat) {
+        $res .= ".setLngLat([". $mklat . "," . $mklon . "])\n";
+      } else {
+        $res .= ".setLngLat([". $lon . "," . $lat . "])\n";
+      }
+      $res .= ".addTo(". $id .");\n";
+  }
+   $res .= "</script>";
+
+  return $res;
+}
+add_shortcode('mapbox', 'mapbox_iw_shortcode');
