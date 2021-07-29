@@ -3,7 +3,7 @@
 /**
  * Plugin Name:       Wordpress Mapbox
  * Description:       Inserts a mapbox map into your wordpress site.
- * Version:           0.1.0
+ * Version:           1.0.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Alexis LOURS
@@ -22,6 +22,20 @@ function add_plugin_scripts()
   wp_enqueue_script('script', plugins_url('js/mapbox-gl.js', __FILE__), array(), '2.3.1', false);
 }
 add_action('wp_enqueue_scripts', 'add_plugin_scripts');
+
+/* -------------------------------------------------------------------------- */
+/*                                   Helper                                   */
+/* -------------------------------------------------------------------------- */
+
+function generateRandomString($length = 10) {
+  $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  $charactersLength = strlen($characters);
+  $randomString = '';
+  for ($i = 0; $i < $length; $i++) {
+      $randomString .= $characters[rand(0, $charactersLength - 1)];
+  }
+  return $randomString;
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                Settings page                               */
@@ -69,7 +83,7 @@ function mapbox_iw_shortcode($atts)
 {
   extract(shortcode_atts(
     array(
-      'id' => 'map',
+      'id' => generateRandomString(),
       'style' => 'satellite-v9',
       'zoom' => '15',
       'lon' => '2.38961',
@@ -88,7 +102,7 @@ function mapbox_iw_shortcode($atts)
   $res = "<div id='" . $id . "' style='width: " . $width . "; height: " . $height . ";'></div>\n"
     . "<script>\n"
     . "mapboxgl.accessToken = '" . $token . "';\n"
-    . "var map = new mapboxgl.Map({\n"
+    . "var ". $id ." = new mapboxgl.Map({\n"
     . "container: '" . $id . "',\n"
     . "style: 'mapbox://styles/mapbox/" . $style . "',\n"
     . "center: ['" . $lon . "','" . $lat . "'],\n"
@@ -131,7 +145,7 @@ class mapbox_iw_Widget extends WP_Widget
   }
   function form($instance)
   {
-    $id = !empty($instance['id']) ? $instance['id'] : 'widget';
+    $id = !empty($instance['id']) ? $instance['id'] : generateRandomString();
     $style = !empty($instance['style']) ? $instance['style'] : 'satellite-v9';
     $zoom = !empty($instance['zoom']) ? $instance['zoom'] : '15';
     $lon = !empty($instance['lon']) ? $instance['lon'] : '2.38961';
@@ -236,7 +250,7 @@ class mapbox_iw_Widget extends WP_Widget
     $res = "<div id='" . $id . "' style='width: " . $width . "; height: " . $height . ";'></div>\n"
       . "<script>\n"
       . "mapboxgl.accessToken = '" . $token . "';\n"
-      . "var map = new mapboxgl.Map({\n"
+      . "var ".$id." = new mapboxgl.Map({\n"
       . "container: '". $id ."',\n"
       . "style: 'mapbox://styles/mapbox/" . $style . "',\n"
       . "center: ['" . $lon . "','" . $lat . "'],\n"
