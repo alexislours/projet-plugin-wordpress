@@ -13,39 +13,15 @@
  */
 
 /* -------------------------------------------------------------------------- */
-/*                                Plugin setup                                */
-/* -------------------------------------------------------------------------- */
-
-register_activation_hook(__FILE__, 'mapbox_iw_install');
-
-function mapbox_iw_install()
-{
-  require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-  global $wpdb;
-  $charset_collate = $wpdb->get_charset_collate();
-  $data_table_name = $wpdb->prefix . "mapbox_iw_data";
-  $sqlData = "CREATE TABLE $data_table_name (
-        id mediumint(9) NOT NULL AUTO_INCREMENT,
-        time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-        lat FLOAT DEFAULT 0 NOT NULL,
-        lon FLOAT DEFAULT 0 NOT NULL,
-        tileset VARCHAR(100) DEFAULT '' NOT NULL,
-        zoom TINYINT DEFAULT 0 NOT NULL,
-        locked TINYINT(1) DEFAULT 0 NOT NULL,
-        PRIMARY KEY  (id)
-      ) $charset_collate;";
-  dbDelta($sqlData);
-}
-
-/* -------------------------------------------------------------------------- */
 /*                                Load scripts                                */
 /* -------------------------------------------------------------------------- */
 
-function add_plugin_scripts() {
-  wp_enqueue_style( 'style', plugins_url('css/mapbox-gl.css', __FILE__), array(), '2.3.1', 'all');
-  wp_enqueue_script( 'script', plugins_url('js/mapbox-gl.js', __FILE__), array (), '2.3.1', false);
+function add_plugin_scripts()
+{
+  wp_enqueue_style('style', plugins_url('css/mapbox-gl.css', __FILE__), array(), '2.3.1', 'all');
+  wp_enqueue_script('script', plugins_url('js/mapbox-gl.js', __FILE__), array(), '2.3.1', false);
 }
-add_action( 'wp_enqueue_scripts', 'add_plugin_scripts' );
+add_action('wp_enqueue_scripts', 'add_plugin_scripts');
 
 /* -------------------------------------------------------------------------- */
 /*                                Settings page                               */
@@ -82,7 +58,7 @@ function mapbox_iw_options_page()
       <?php submit_button(); ?>
     </form>
   </div>
-<?php
+  <?php
 }
 
 /* -------------------------------------------------------------------------- */
@@ -109,29 +85,183 @@ function mapbox_iw_shortcode($atts)
     ),
     $atts
   ));
-  $res = "<div id='" . $id . "' style='width: " . $width . "; height: ". $height .";'></div>\n"
+  $res = "<div id='" . $id . "' style='width: " . $width . "; height: " . $height . ";'></div>\n"
     . "<script>\n"
     . "mapboxgl.accessToken = '" . $token . "';\n"
     . "var map = new mapboxgl.Map({\n"
-    . "container: 'map',\n"
-    . "style: 'mapbox://styles/mapbox/". $style ."',\n"
-    . "center: ['". $lon . "','" . $lat . "'],\n"
-    . "zoom: '". $zoom . "',\n"
-    . "interactive: ". $interactive
+    . "container: '" . $id . "',\n"
+    . "style: 'mapbox://styles/mapbox/" . $style . "',\n"
+    . "center: ['" . $lon . "','" . $lat . "'],\n"
+    . "zoom: '" . $zoom . "',\n"
+    . "interactive: " . $interactive
     . "\n})\n";
   if ($marker == 'true') {
     $res .= "var marker = new mapboxgl.Marker({\n"
       . "color: '" . $color . "',\n"
       . "})\n";
-      if ($mklon && $mklat) {
-        $res .= ".setLngLat([". $mklat . "," . $mklon . "])\n";
-      } else {
-        $res .= ".setLngLat([". $lon . "," . $lat . "])\n";
-      }
-      $res .= ".addTo(". $id .");\n";
+    if ($mklon && $mklat) {
+      $res .= ".setLngLat([" . $mklat . "," . $mklon . "])\n";
+    } else {
+      $res .= ".setLngLat([" . $lon . "," . $lat . "])\n";
+    }
+    $res .= ".addTo(" . $id . ");\n";
   }
-   $res .= "</script>";
+  $res .= "</script>";
 
   return $res;
 }
 add_shortcode('mapbox', 'mapbox_iw_shortcode');
+
+/* -------------------------------------------------------------------------- */
+/*                                Custom Widget                               */
+/* -------------------------------------------------------------------------- */
+
+class mapbox_iw_Widget extends WP_Widget
+{
+
+  function __construct()
+  {
+
+    $widget_options = array(
+      'classname' => 'mapbox_iw_widget',
+      'description' => 'Add a customizable map.'
+    );
+
+    parent::__construct('mapbox_iw_widget', 'Mapbox', $widget_options);
+  }
+  function form($instance)
+  {
+    $id = !empty($instance['id']) ? $instance['id'] : 'widget';
+    $style = !empty($instance['style']) ? $instance['style'] : 'satellite-v9';
+    $zoom = !empty($instance['zoom']) ? $instance['zoom'] : '15';
+    $lon = !empty($instance['lon']) ? $instance['lon'] : '2.38961';
+    $lat = !empty($instance['lat']) ? $instance['lat'] : '48.84907';
+    $interactive = !empty($instance['interactive']) ? $instance['interactive'] : 'true';
+    $width = !empty($instance['width']) ? $instance['width'] : '100%';
+    $height = !empty($instance['height']) ? $instance['height'] : '400px';
+    $marker = !empty($instance['marker']) ? $instance['marker'] : 'false';
+    $color = !empty($instance['color']) ? $instance['color'] : '#f00';
+    $mklon = !empty($instance['mklon']) ? $instance['mklon'] : false;
+    $mklat = !empty($instance['mklat']) ? $instance['mklat'] : false;
+  ?>
+
+    <p>
+      <label for="<?php echo $this->get_field_id('id'); ?>">ID:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('id'); ?>" name="<?php echo $this->get_field_name('id'); ?>" value="<?php echo esc_attr($id); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('style'); ?>">Style:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('style'); ?>" name="<?php echo $this->get_field_name('style'); ?>" value="<?php echo esc_attr($style); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('zoom'); ?>">Zoom level:</label>
+      <input class="widefat" type="number" min="0" max="23" id="<?php echo $this->get_field_id('zoom'); ?>" name="<?php echo $this->get_field_name('zoom'); ?>" value="<?php echo esc_attr($zoom); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('lon'); ?>">Longitude:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('lon'); ?>" name="<?php echo $this->get_field_name('lon'); ?>" value="<?php echo esc_attr($lon); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('lat'); ?>">Latitude:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('lat'); ?>" name="<?php echo $this->get_field_name('lat'); ?>" value="<?php echo esc_attr($lat); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('interactive'); ?>">Interactive:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('interactive'); ?>" name="<?php echo $this->get_field_name('interactive'); ?>" value="<?php echo esc_attr($interactive); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('width'); ?>">Width:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('width'); ?>" name="<?php echo $this->get_field_name('width'); ?>" value="<?php echo esc_attr($width); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('height'); ?>">Height:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('height'); ?>" name="<?php echo $this->get_field_name('height'); ?>" value="<?php echo esc_attr($height); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('marker'); ?>">Marker:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('marker'); ?>" name="<?php echo $this->get_field_name('marker'); ?>" value="<?php echo esc_attr($marker); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('color'); ?>">Marker color:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('color'); ?>" name="<?php echo $this->get_field_name('color'); ?>" value="<?php echo esc_attr($color); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('mklon'); ?>">Marker longitude:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('mklon'); ?>" name="<?php echo $this->get_field_name('mklon'); ?>" value="<?php echo esc_attr($mklon); ?>" />
+    </p>
+    <p>
+      <label for="<?php echo $this->get_field_id('mklat'); ?>">Marker latitude:</label>
+      <input class="widefat" type="text" id="<?php echo $this->get_field_id('mklat'); ?>" name="<?php echo $this->get_field_name('mklat'); ?>" value="<?php echo esc_attr($mklat); ?>" />
+    </p>
+    <p>
+  <?php
+  }
+
+  function update($new_instance, $old_instance)
+  {
+    $instance = $old_instance;
+    $instance['id'] = strip_tags($new_instance['id']);
+    $instance['style'] = strip_tags($new_instance['style']);
+    $instance['zoom'] = strip_tags($new_instance['zoom']);
+    $instance['lon'] = strip_tags($new_instance['lon']);
+    $instance['lat'] = strip_tags($new_instance['lat']);
+    $instance['interactive'] = strip_tags($new_instance['interactive']);
+    $instance['width'] = strip_tags($new_instance['width']);
+    $instance['height'] = strip_tags($new_instance['height']);
+    $instance['marker'] = strip_tags($new_instance['marker']);
+    $instance['color'] = strip_tags($new_instance['color']);
+    $instance['mklon'] = strip_tags($new_instance['mklon']);
+    $instance['mklat'] = strip_tags($new_instance['mklat']);
+    return $instance;
+  }
+
+  function widget($args, $instance)
+  {
+
+    $token = get_option('mapbox_iw_token');
+    $id = $instance['id'];
+    $style = $instance['style'];
+    $zoom = $instance['zoom'];
+    $lon = $instance['lon'];
+    $lat = $instance['lat'];
+    $interactive = $instance['interactive'];
+    $width = $instance['width'];
+    $height = $instance['height'];
+    $marker = $instance['marker'];
+    $color = $instance['color'];
+    $mklon = $instance['mklon'];
+    $mklat = $instance['mklat'];
+
+
+    $res = "<div id='" . $id . "' style='width: " . $width . "; height: " . $height . ";'></div>\n"
+      . "<script>\n"
+      . "mapboxgl.accessToken = '" . $token . "';\n"
+      . "var map = new mapboxgl.Map({\n"
+      . "container: '". $id ."',\n"
+      . "style: 'mapbox://styles/mapbox/" . $style . "',\n"
+      . "center: ['" . $lon . "','" . $lat . "'],\n"
+      . "zoom: '" . $zoom . "',\n"
+      . "interactive: " . $interactive
+      . "\n})\n";
+    if ($marker == 'true') {
+      $res .= "var marker = new mapboxgl.Marker({\n"
+        . "color: '" . $color . "',\n"
+        . "})\n";
+      if ($mklon && $mklat) {
+        $res .= ".setLngLat([" . $mklat . "," . $mklon . "])\n";
+      } else {
+        $res .= ".setLngLat([" . $lon . "," . $lat . "])\n";
+      }
+      $res .= ".addTo(" . $id . ");\n";
+    }
+    $res .= "</script>";
+    echo $res;
+  }
+}
+
+function mapbox_iw_register_widget()
+{
+
+  register_widget('mapbox_iw_Widget');
+}
+add_action('widgets_init', 'mapbox_iw_register_widget');
